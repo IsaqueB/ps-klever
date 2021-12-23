@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package proto;
+option go_package="/proto";
+
+// Entities
+message Message{
+    string body = 1;
+}
+
+message VoteStruct{
+    string id = 1;
+    string video = 2;
+    string user = 3;
+    bool upvote = 4;
+}
+
+// Requests
+message InsertRequest{
+    VoteStruct vote = 1;
+}
+message GetRequest{
+    string id = 1;
+}
+message UpdateOneRequest{
+    string id = 1;
+    bool new_value = 2;
+}
+message DeleteOneRequest{
+    string id = 1;
+}
+message ListVotesInVideoRequest{
+    string id = 1;
+}
+message ListVotesOfUserRequest{
+    string id = 1;
+}
+// Responses
+message InsertResponse{
+    string id = 1;
+}
+message GetResponse{
+    VoteStruct vote = 1;
+}
+message UpdateOneResponse{
+    string update_result = 1;
+}
+message DeleteOneResponse{
+    string delete_result = 1;
+}
+message ListVotesInVideoResponse{
+    VoteStruct vote = 1;
+}
+message ListVotesOfUserResponse{
+    VoteStruct vote = 1;
+}
+
+// Routes
+service Vote{
+    rpc Insert(InsertRequest) returns (InsertResponse) {}
+    rpc Get(GetRequest) returns (GetResponse) {}
+    rpc UpdateOne(UpdateOneRequest) returns (UpdateOneResponse) {}
+    rpc DeleteOne(DeleteOneRequest) returns (DeleteOneResponse) {}
+    rpc ListVotesInVideo(ListVotesInVideoRequest) returns (stream ListVotesInVideoResponse) {}
+    rpc ListVotesOfUser(ListVotesOfUserRequest) returns (stream ListVotesOfUserResponse) {}
+}
