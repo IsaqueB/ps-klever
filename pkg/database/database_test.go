@@ -8,6 +8,7 @@ import (
 
 	"github.com/IsaqueB/ps-klever/pkg/database"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -80,4 +81,27 @@ func TestJSONUnmarshall(t *testing.T) {
 		t.Errorf("Error formatting the struct. %v", err)
 	}
 	assert.Equal(t, database.VoteModel{ID: id, Video: video, User: user, Upvote: upvote}, json_struct)
+}
+
+func TestBsonMarshallAndUnmarshall(t *testing.T) {
+	id := primitive.NewObjectID()
+	video := primitive.NewObjectID()
+	user := primitive.NewObjectID()
+	upvote := true
+	vote := database.VoteModel{
+		ID:     id,
+		Video:  video,
+		User:   user,
+		Upvote: upvote,
+	}
+	bson_hex, err := bson.Marshal(vote)
+	if err != nil {
+		t.Errorf("Error formatting the json. %v", err)
+	}
+	actual := bson.D{}
+	if err := bson.Unmarshal(bson_hex, &actual); err != nil {
+		t.Errorf("Error unmarshalling to json. %v", err)
+	}
+	expected := bson.D{{"_id", id}, {"video", video}, {"user", user}, {"upvote", upvote}}
+	assert.Equal(t, expected, actual, "")
 }
