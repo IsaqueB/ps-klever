@@ -4,17 +4,12 @@ package proto;
 option go_package="/proto";
 
 // Entities
-message Message{
-    string body = 1;
-}
-
 message VoteStruct{
     string id = 1;
     string video = 2;
     string user = 3;
     bool upvote = 4;
 }
-
 // Requests
 message InsertRequest{
     VoteStruct vote = 1;
@@ -43,10 +38,11 @@ message GetResponse{
     VoteStruct vote = 1;
 }
 message UpdateOneResponse{
-    string update_result = 1;
+    int32 matched = 1;
+    int32 modified = 2;
 }
 message DeleteOneResponse{
-    string delete_result = 1;
+    int32 deleted = 1;
 }
 message ListVotesInVideoResponse{
     VoteStruct vote = 1;
@@ -54,7 +50,6 @@ message ListVotesInVideoResponse{
 message ListVotesOfUserResponse{
     VoteStruct vote = 1;
 }
-
 // Routes
 service Vote{
     rpc Insert(InsertRequest) returns (InsertResponse) {}

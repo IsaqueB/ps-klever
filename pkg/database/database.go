@@ -12,7 +12,6 @@ type MongoClient interface {
 	Connect() error
 	Disconnect()
 	GetClient() *mongo.Client
-	GetContext() *context.Context
 }
 type mongoClient struct {
 	client *mongo.Client
@@ -47,8 +46,4 @@ func (mc *mongoClient) Disconnect() {
 
 func (mc *mongoClient) GetClient() *mongo.Client {
 	return mc.client
-}
-
-func (mc *mongoClient) GetContext() *context.Context {
-	return mc.ctx
 }
