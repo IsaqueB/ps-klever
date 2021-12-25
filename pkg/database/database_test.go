@@ -13,8 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func TestCreateNewMongoClient(t *testing.T) {
-	client := database.CreateNewMongoClient()
+func TestNewMongoClient(t *testing.T) {
+	client := database.NewMongoClient()
 	switch aux := client.(type) {
 	default:
 		t.Errorf("Unexpected type. %v", aux)
@@ -23,14 +23,14 @@ func TestCreateNewMongoClient(t *testing.T) {
 	}
 }
 func TestConnect(t *testing.T) {
-	client := database.CreateNewMongoClient()
+	client := database.NewMongoClient()
 	if err := client.Connect(); err != nil {
 		t.Errorf("Error while connecting. %v", err)
 	}
 	defer client.Disconnect()
 }
 func TestDisconnect(t *testing.T) {
-	client := database.CreateNewMongoClient()
+	client := database.NewMongoClient()
 	if err := client.Connect(); err != nil {
 		t.Errorf("Error while connecting. %v", err)
 	}
@@ -42,7 +42,7 @@ func TestDisconnect(t *testing.T) {
 	}
 }
 func TestGetClient(t *testing.T) {
-	client := database.CreateNewMongoClient()
+	client := database.NewMongoClient()
 	if err := client.Connect(); err != nil {
 		t.Errorf("Error while connecting. %v", err)
 	}
