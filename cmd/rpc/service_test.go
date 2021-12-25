@@ -12,18 +12,18 @@ import (
 	"google.golang.org/grpc"
 )
 
-func TestCreateNewGrpcServer(t *testing.T) {
-	client := database.CreateNewMongoClient()
-	s := rpc.CreateNewGrpcServer(&client)
+func TestNewGrpcServer(t *testing.T) {
+	client := database.NewMongoClient()
+	s := rpc.NewGrpcServer(&client)
 	assert.Equal(t, *s.GetClient(), client, "server's client and the created should be the same")
 }
 
 func initAServer() (rpc.Server, error) {
-	client := database.CreateNewMongoClient()
+	client := database.NewMongoClient()
 	if err := client.Connect(); err != nil {
 		return nil, err
 	}
-	s := rpc.CreateNewGrpcServer(&client)
+	s := rpc.NewGrpcServer(&client)
 	s.SetDatabase(rpc.TEST_DB)
 	return s, nil
 }

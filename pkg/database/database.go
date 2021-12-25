@@ -18,7 +18,7 @@ type mongoClient struct {
 	ctx    *context.Context
 }
 
-func CreateNewMongoClient() MongoClient {
+func NewMongoClient() MongoClient {
 	return &mongoClient{}
 }
 

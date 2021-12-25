@@ -40,7 +40,7 @@ type server struct {
 }
 
 // Create a new struct and sets it's client to the one in the function params
-func CreateNewGrpcServer(client *database.MongoClient) Server {
+func NewGrpcServer(client *database.MongoClient) Server {
 	grpcServer := server{}
 	grpcServer.setClient(client)
 	grpcServer.SetDatabase(MAIN_DB)
