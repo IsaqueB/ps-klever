@@ -4,22 +4,29 @@ import (
 	"context"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+type VoteModel struct {
+	ID     primitive.ObjectID `json:"_id" bson:"_id"`
+	Video  primitive.ObjectID `json:"video" bson:"video"`
+	User   primitive.ObjectID `json:"user" bson:"user"`
+	Upvote bool               `json:"upvote" bson:"upvote"`
+}
 
 type MongoClient interface {
 	Connect() error
 	Disconnect()
 	GetClient() *mongo.Client
-	GetContext() *context.Context
 }
 type mongoClient struct {
 	client *mongo.Client
 	ctx    *context.Context
 }
 
-func CreateNewMongoClient() MongoClient {
+func NewMongoClient() MongoClient {
 	return &mongoClient{}
 }
 
@@ -47,8 +54,4 @@ func (mc *mongoClient) Disconnect() {
 
 func (mc *mongoClient) GetClient() *mongo.Client {
 	return mc.client
-}
-
-func (mc *mongoClient) GetContext() *context.Context {
-	return mc.ctx
 }
