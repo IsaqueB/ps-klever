@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -31,7 +33,8 @@ func NewMongoClient() MongoClient {
 }
 
 func (mc *mongoClient) Connect() error {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	url := fmt.Sprintf("mongodb+srv://%s:%s@cluster0.kh2zb.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", os.Getenv("DB_USR"), os.Getenv("DB_PWD"))
+	client, err := mongo.NewClient(options.Client().ApplyURI(url))
 	if err != nil {
 		return err
 	}
