@@ -3,6 +3,8 @@ syntax = "proto3";
 package proto;
 option go_package="/proto";
 
+import "google/api/annotations.proto";
+
 // Entities
 message VoteStruct{
     string id = 1;
@@ -45,17 +47,43 @@ message DeleteOneResponse{
     int32 deleted = 1;
 }
 message ListVotesInVideoResponse{
-    VoteStruct vote = 1;
+    repeated VoteStruct vote = 1;
 }
 message ListVotesOfUserResponse{
-    VoteStruct vote = 1;
+    repeated VoteStruct vote = 1;
 }
 // Routes
 service Vote{
-    rpc Insert(InsertRequest) returns (InsertResponse) {}
-    rpc Get(GetRequest) returns (GetResponse) {}
-    rpc UpdateOne(UpdateOneRequest) returns (UpdateOneResponse) {}
-    rpc DeleteOne(DeleteOneRequest) returns (DeleteOneResponse) {}
-    rpc ListVotesInVideo(ListVotesInVideoRequest) returns (stream ListVotesInVideoResponse) {}
-    rpc ListVotesOfUser(ListVotesOfUserRequest) returns (stream ListVotesOfUserResponse) {}
+    rpc ListVotesInVideo(ListVotesInVideoRequest) returns (ListVotesInVideoResponse) {
+        option (google.api.http) = {
+            get: "/v1/video/{id}"
+        };
+    }
+    rpc ListVotesOfUser(ListVotesOfUserRequest) returns (ListVotesOfUserResponse) {
+        option (google.api.http) = {
+            get: "/v1/user/{id}"
+        };
+    }
+    rpc Insert(InsertRequest) returns (InsertResponse) {
+        option (google.api.http) = {
+            post: "/v1"
+            body: "*"
+        };
+    }
+    rpc Get(GetRequest) returns (GetResponse) {
+        option (google.api.http) = {
+            get: "/v1/{id}"
+        };
+    }
+    rpc UpdateOne(UpdateOneRequest) returns (UpdateOneResponse) {
+        option (google.api.http) = {
+            put: "/v1"
+            body: "*"
+        };
+    }
+    rpc DeleteOne(DeleteOneRequest) returns (DeleteOneResponse) {
+        option (google.api.http) = {
+            delete: "/v1/{id}"
+        };
+    }
 }

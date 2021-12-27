@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/IsaqueB/ps-klever/pkg/database"
-	"github.com/IsaqueB/ps-klever/proto"
+	pb "github.com/IsaqueB/ps-klever/proto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/status"
@@ -24,19 +24,21 @@ var (
 )
 
 type Server interface {
-	Insert(ctx context.Context, message *proto.InsertRequest) (*proto.InsertResponse, error)
-	Get(ctx context.Context, message *proto.GetRequest) (*proto.GetResponse, error)
-	UpdateOne(ctx context.Context, message *proto.UpdateOneRequest) (*proto.UpdateOneResponse, error)
-	DeleteOne(ctx context.Context, message *proto.DeleteOneRequest) (*proto.DeleteOneResponse, error)
-	ListVotesInVideo(req *proto.ListVotesInVideoRequest, stream proto.Vote_ListVotesInVideoServer) error
-	ListVotesOfUser(req *proto.ListVotesOfUserRequest, stream proto.Vote_ListVotesOfUserServer) error
+	Insert(ctx context.Context, message *pb.InsertRequest) (*pb.InsertResponse, error)
+	Get(ctx context.Context, message *pb.GetRequest) (*pb.GetResponse, error)
+	UpdateOne(ctx context.Context, message *pb.UpdateOneRequest) (*pb.UpdateOneResponse, error)
+	DeleteOne(ctx context.Context, message *pb.DeleteOneRequest) (*pb.DeleteOneResponse, error)
+	ListVotesInVideo(ctx context.Context, req *pb.ListVotesInVideoRequest) (*pb.ListVotesInVideoResponse, error)
+	ListVotesOfUser(ctx context.Context, req *pb.ListVotesOfUserRequest) (*pb.ListVotesOfUserResponse, error)
 	GetClient() *database.MongoClient
 	SetDatabase(index int)
+	pb.UnsafeVoteServer
 }
 
 type server struct {
 	client   *database.MongoClient
 	database string
+	pb.UnimplementedVoteServer
 }
 
 // Create a new struct and sets it's client to the one in the function params
@@ -48,6 +50,7 @@ func NewGrpcServer(client *database.MongoClient) Server {
 }
 
 // Set client to server in order to keep the same connection during operation
+
 func (s *server) setClient(client *database.MongoClient) {
 	s.client = client
 }
@@ -60,8 +63,8 @@ func (s *server) SetDatabase(index int) {
 	s.database = db_string[index]
 }
 
-// Create a new Vote from an USER to a VIDEO testar com o struct do protobuf
-func (s *server) Insert(ctx context.Context, req *proto.InsertRequest) (*proto.InsertResponse, error) {
+// Create a new Vote from an USER to a VIDEO testar com o struct do pbbuf
+func (s *server) Insert(ctx context.Context, req *pb.InsertRequest) (*pb.InsertResponse, error) {
 	log.Println("INSERT VOTE - Recieved")
 	// selecting collection
 	voteCollection := (*s.client).GetClient().Database(s.database).Collection("vote")
@@ -84,11 +87,11 @@ func (s *server) Insert(ctx context.Context, req *proto.InsertRequest) (*proto.I
 	if err != nil {
 		return nil, err
 	}
-	return &proto.InsertResponse{Id: insertResult.InsertedID.(primitive.ObjectID).Hex()}, nil
+	return &pb.InsertResponse{Id: insertResult.InsertedID.(primitive.ObjectID).Hex()}, nil
 }
 
 // Returns a Vote from an USER to a VIDEO
-func (s *server) Get(ctx context.Context, req *proto.GetRequest) (*proto.GetResponse, error) {
+func (s *server) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
 	log.Printf("GET UPVOTE - Recieved - ID TO BE QUERIED: %s", req.Id)
 	// select collection
 	voteCollection := (*s.client).GetClient().Database(s.database).Collection("vote")
@@ -103,7 +106,7 @@ func (s *server) Get(ctx context.Context, req *proto.GetRequest) (*proto.GetResp
 		return nil, err
 	}
 	// send message
-	return &proto.GetResponse{Vote: &proto.VoteStruct{
+	return &pb.GetResponse{Vote: &pb.VoteStruct{
 		Id:     voteFound["_id"].(primitive.ObjectID).Hex(),
 		Video:  voteFound["video"].(primitive.ObjectID).Hex(),
 		User:   voteFound["user"].(primitive.ObjectID).Hex(),
@@ -112,7 +115,7 @@ func (s *server) Get(ctx context.Context, req *proto.GetRequest) (*proto.GetResp
 }
 
 // Modify vote's UPVOTE value which indicates if it is an UPVOTE or a DOWNVOTE
-func (s *server) UpdateOne(ctx context.Context, req *proto.UpdateOneRequest) (*proto.UpdateOneResponse, error) {
+func (s *server) UpdateOne(ctx context.Context, req *pb.UpdateOneRequest) (*pb.UpdateOneResponse, error) {
 	log.Printf("UPDATE UPVOTE - Recieved - ID: %s - CHANGE VALUE TO: %v", req.Id, req.NewValue)
 	// select collection
 	voteCollection := (*s.client).GetClient().Database(s.database).Collection("vote")
@@ -131,14 +134,14 @@ func (s *server) UpdateOne(ctx context.Context, req *proto.UpdateOneRequest) (*p
 		return nil, status.Errorf(5, "Could not find the vote requested")
 	}
 	// send message
-	return &proto.UpdateOneResponse{
+	return &pb.UpdateOneResponse{
 		Matched:  int32(updateResult.MatchedCount),
 		Modified: int32(updateResult.ModifiedCount),
 	}, nil
 }
 
 // Remove an USER's vote to a VIDEO
-func (s *server) DeleteOne(ctx context.Context, req *proto.DeleteOneRequest) (*proto.DeleteOneResponse, error) {
+func (s *server) DeleteOne(ctx context.Context, req *pb.DeleteOneRequest) (*pb.DeleteOneResponse, error) {
 	log.Printf("DELETE UPVOTE - Recieved message from client: %s", req.Id)
 	// select collection
 	voteCollection := (*s.client).GetClient().Database(s.database).Collection("vote")
@@ -154,82 +157,80 @@ func (s *server) DeleteOne(ctx context.Context, req *proto.DeleteOneRequest) (*p
 	if deleteResult.DeletedCount == 0 {
 		return nil, status.Errorf(5, "Could not find the vote requested")
 	}
-	return &proto.DeleteOneResponse{
+	return &pb.DeleteOneResponse{
 		Deleted: int32(deleteResult.DeletedCount),
 	}, nil
 }
 
 // Queries all votes to a VIDEO and the UPVOTE count. Negative results to VoteCount means a video is more downvoted than upvoted
-func (s *server) ListVotesInVideo(req *proto.ListVotesInVideoRequest, stream proto.Vote_ListVotesInVideoServer) error {
+func (s *server) ListVotesInVideo(ctx context.Context, req *pb.ListVotesInVideoRequest) (*pb.ListVotesInVideoResponse, error) {
 	log.Printf("GET VOTES OF VIDEO - Recieved - VIDEO TO BE QUERIED: %s", req.Id)
-	ctx := context.Background()
 	// selecting collection
 	voteCollection := (*s.client).GetClient().Database(s.database).Collection("vote")
 	// converting string from request to objectId
 	videoId, err := primitive.ObjectIDFromHex(req.Id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// querying for votes of requested video
 	cursor, err := voteCollection.Find(ctx, bson.M{"video": videoId})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// iterate cursor
+	var votes []*pb.VoteStruct
 	for cursor.Next(ctx) {
 		var current bson.M
 		// decode and parse info
 		if err = cursor.Decode(&current); err != nil {
-			return err
+			return nil, err
 		}
-		vote := &proto.VoteStruct{
+		vote := &pb.VoteStruct{
 			Id:     current["_id"].(primitive.ObjectID).Hex(),
 			Video:  current["video"].(primitive.ObjectID).Hex(),
 			User:   current["user"].(primitive.ObjectID).Hex(),
 			Upvote: current["upvote"].(bool),
 		}
 		// send document
-		err = stream.Send(&proto.ListVotesInVideoResponse{Vote: vote})
-		if err != nil {
-			return err
-		}
+		votes = append(votes, vote)
 	}
-	return nil
+	return &pb.ListVotesInVideoResponse{
+		Vote: votes,
+	}, nil
 }
 
 //List all votes an USER made
-func (s *server) ListVotesOfUser(req *proto.ListVotesOfUserRequest, stream proto.Vote_ListVotesOfUserServer) error {
-	ctx := context.Background()
+func (s *server) ListVotesOfUser(ctx context.Context, req *pb.ListVotesOfUserRequest) (*pb.ListVotesOfUserResponse, error) {
 	// selecting collection
 	voteCollection := (*s.client).GetClient().Database(s.database).Collection("vote")
 	// converting string from request to objectId
 	userId, err := primitive.ObjectIDFromHex(req.Id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// querying for votes of requested video
 	cursor, err := voteCollection.Find(ctx, bson.M{"user": userId})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// iterate cursor
+	var votes []*pb.VoteStruct
 	for cursor.Next(ctx) {
 		var current bson.M
 		// decode and parse info
 		if err = cursor.Decode(&current); err != nil {
-			return err
+			return nil, err
 		}
-		vote := &proto.VoteStruct{
+		vote := &pb.VoteStruct{
 			Id:     current["_id"].(primitive.ObjectID).Hex(),
 			Video:  current["video"].(primitive.ObjectID).Hex(),
 			User:   current["user"].(primitive.ObjectID).Hex(),
 			Upvote: current["upvote"].(bool),
 		}
-		// send document
-		err = stream.Send(&proto.ListVotesOfUserResponse{Vote: vote})
-		if err != nil {
-			return err
-		}
+		// append document to slice
+		votes = append(votes, vote)
 	}
-	return nil
+	return &pb.ListVotesOfUserResponse{
+		Vote: votes,
+	}, nil
 }
