@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"net"
 	"net/http"
-	"os"
 
 	"github.com/IsaqueB/ps-klever/cmd/rpc"
 	"github.com/IsaqueB/ps-klever/pkg/database"
@@ -33,33 +30,34 @@ func main() {
 		errors <- http.ListenAndServe(":3000", mux)
 	}()
 	//Setup and Run gRPC Server
-	go func() {
-		client := database.NewMongoClient()
-		if err := client.Connect(); err != nil {
-			log.Fatalf("Error connecting to database. Error: %v", err)
-		}
-		defer client.Disconnect()
+	// Not used since heroku doesn't support HTTP/2
+	// go func() {
+	// 	client := database.NewMongoClient()
+	// 	if err := client.Connect(); err != nil {
+	// 		log.Fatalf("Error connecting to database. Error: %v", err)
+	// 	}
+	// 	defer client.Disconnect()
 
-		s := rpc.NewGrpcServer(&client)
-		grpcServer := grpc.NewServer()
-		defer grpcServer.GracefulStop()
+	// 	s := rpc.NewGrpcServer(&client)
+	// 	grpcServer := grpc.NewServer()
+	// 	defer grpcServer.GracefulStop()
 
-		port := ":" + os.Getenv("PORT")
-		if port == ":" {
-			port = ":9000"
-		}
-		lis, err := net.Listen("tcp", port)
-		if err != nil {
-			log.Fatalf("Error starting listener to grpc server. Error: %v", err)
-		}
+	// 	port := ":" + os.Getenv("PORT")
+	// 	if port == ":" {
+	// 		port = ":9000"
+	// 	}
+	// 	lis, err := net.Listen("tcp", port)
+	// 	if err != nil {
+	// 		log.Fatalf("Error starting listener to grpc server. Error: %v", err)
+	// 	}
 
-		pb.RegisterVoteServer(grpcServer, s)
-		err = grpcServer.Serve(lis)
-		if err != nil {
-			log.Fatalf("Error serving to grpc server. Error: %v", err)
-		}
-		fmt.Printf("Successfully started gRFC server in %v", port)
-	}()
+	// 	pb.RegisterVoteServer(grpcServer, s)
+	// 	err = grpcServer.Serve(lis)
+	// 	if err != nil {
+	// 		log.Fatalf("Error serving to grpc server. Error: %v", err)
+	// 	}
+	// 	fmt.Printf("Successfully started gRFC server in %v", port)
+	// }()
 	for err := range errors {
 		log.Fatal(err)
 		return
